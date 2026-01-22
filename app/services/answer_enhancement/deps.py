@@ -10,4 +10,5 @@ def get_answer_enhancement_service(request: Request) -> AnswerEnhancementService
         enhancement_service_settings.llm_model,
         enhancement_service_settings.checker_temperature,
         enhancement_service_settings.enhancer_temperature,
+        enhancement_service_settings.extractor_temperature,
     )

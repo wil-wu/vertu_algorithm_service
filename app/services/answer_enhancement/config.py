@@ -16,6 +16,7 @@ class AnswerEnhancementSettings(BaseSettings):
     llm_model: str = Field(default="kimi-k2-turbo-preview", description="LLM模型")
     checker_temperature: float = Field(default=0.01, description="检查器温度")
     enhancer_temperature: float = Field(default=0.3, description="增强器温度")
+    extractor_temperature: float = Field(default=0.01, description="提取器温度")
 
 
 enhancement_service_settings = AnswerEnhancementSettings()
