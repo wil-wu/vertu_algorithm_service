@@ -4,7 +4,7 @@ from enum import Enum
 class EnhancementStrategy(Enum):
     """增强策略"""
 
-    CLARIFICATION = "clarification"
+    ENHANCE = "enhance"
     GUIDANCE = "guidance"
     DIRECT = "direct"
 

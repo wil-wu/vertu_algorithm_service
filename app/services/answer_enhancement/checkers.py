@@ -28,7 +28,7 @@ class RuleChecker(Checker):
 
     def check(self, question: str, answer: str) -> EnhancementStrategy:
         """策略判断"""
-        return False
+        return EnhancementStrategy.DIRECT
 
 
 class MLChecker(Checker):
@@ -40,7 +40,7 @@ class MLChecker(Checker):
 
     def check(self, question: str, answer: str) -> EnhancementStrategy:
         """策略判断"""
-        return False
+        return EnhancementStrategy.DIRECT
 
 
 class LLMChecker(Checker):
@@ -51,28 +51,30 @@ class LLMChecker(Checker):
     你是一位专业的客服助理,负责分析用户咨询和原始答案,为客服人员选择最佳的回复策略。
     你的目标是帮助客服提供准确、清晰、友好的服务体验。
     </role>
+
     <task>
     分析用户问题和原始答案,选择最合适的答案增强策略。
     </task>
 
     <strategies>
-    1. DIRECT: 问题明确且原始答案完整有意义,可直接使用
-    2. CLARIFICATION: 问题存在歧义或原始答案不足以回答问题,需要反问澄清
-    3. GUIDANCE: 原始答案可用但存在更优表达形式(图片/视频),需添加引导语
+    1. DIRECT: 原始答案完整、优秀,可直接使用
+    2. GUIDANCE: 需要为图片/视频添加引导语(原始答案包含链接但缺引导语,或不包含链接但适合添加)
+    3. ENHANCE: 原始答案内容正确但表达不够优秀,需要优化改写
     </strategies>
 
     <analysis_steps>
-    1. 检查原始答案是否为空或无意义
-    - 如为空/无意义 → CLARIFICATION
-    2. 检查用户问题是否明确
-    - 如问题指代不明、缺少主语 → CLARIFICATION
-    3. 检查原始答案是否完整回答问题
-    - 如答非所问或信息不足 → CLARIFICATION
-    4. 检查原始答案中是否包含图片/视频链接
-    - 如包含且缺少引导语 → GUIDANCE
-    5. 检查问题类型是否适合图片/视频展示(如:拍照、外观、视频、演示等)
-    - 如适合且原始答案纯文本 → GUIDANCE
-    6. 其他情况 → DIRECT
+    1. 检查原始答案中是否包含图片/视频链接
+    - 如包含链接且缺少引导语 → GUIDANCE
+    
+    2. 检查问题类型是否适合补充图片/视频
+    - 如果是拍照、外观、颜色、设计、屏幕、尺寸等视觉类问题 → GUIDANCE
+    
+    3. 检查原始答案的表达质量
+    - 如果表达生硬、啰嗦、不够客服化、缺乏亲和力 → ENHANCE
+    - 如果语句不通顺、结构混乱、专业术语过多 → ENHANCE
+    - 如果回答过于简略,需要更完整的表达 → ENHANCE
+    
+    4. 其他情况(答案完整且表达优秀) → DIRECT
     </analysis_steps>
 
     <output_format>
@@ -83,7 +85,7 @@ class LLMChecker(Checker):
     }
 
     注意:
-    - strategy值只能是: DIRECT, CLARIFICATION, GUIDANCE
+    - strategy值只能是: DIRECT, GUIDANCE, ENHANCE
     - reason需简洁说明选择该策略的关键原因(不超过30字)
     - 不要输出任何JSON之外的内容
     </output_format>
@@ -91,19 +93,10 @@ class LLMChecker(Checker):
     <examples>
     <example>
     用户问题: 苹果耳机跟你们音质最好的耳机对比哪个好?
-    原始答案: 作为音质巅峰,VERTU耳机融入伦敦交响乐团专属调校...
+    原始答案: 作为音质巅峰,VERTU耳机融入伦敦交响乐团专属调校。其具备Hi-Fi级解码与3D环绕音效,还原现场听感。
     输出: {
     "strategy": "DIRECT",
-    "reason": "问题明确,原始答案完整回答了对比问题"
-    }
-    </example>
-
-    <example>
-    用户问题: 我觉得这个手机还不错
-    原始答案: 
-    输出: {
-    "strategy": "CLARIFICATION",
-    "reason": "问题指代不明且原始答案为空"
+    "reason": "答案完整且表达专业优秀"
     }
     </example>
 
@@ -112,7 +105,16 @@ class LLMChecker(Checker):
     原始答案: [QuantumFlip实拍图]
     输出: {
     "strategy": "GUIDANCE",
-    "reason": "原始答案仅含图片链接,缺少引导语"
+    "reason": "包含图片链接但缺少引导语"
+    }
+    </example>
+
+    <example>
+    用户问题: 拍照怎么样?
+    原始答案: QuantumFlip后置5000万AI双摄,支持双重防抖。[QuantumFlip实拍图]
+    输出: {
+    "strategy": "GUIDANCE",
+    "reason": "包含图片链接但缺少引导语"
     }
     </example>
 
@@ -121,25 +123,52 @@ class LLMChecker(Checker):
     原始答案: QuantumFlip后置5000万AI双摄,支持双重防抖。AI暗房师功能配合前置3200万镜头,自拍更立体。
     输出: {
     "strategy": "GUIDANCE",
-    "reason": "拍照问题适合图片展示,需补充实拍图"
-    }
-    </example>
-
-    <example>
-    用户问题: 电池续航怎么样?
-    原始答案: 这款手机很不错
-    输出: {
-    "strategy": "CLARIFICATION",
-    "reason": "原始答案答非所问,未回答续航问题"
+    "reason": "拍照类问题适合补充实拍图"
     }
     </example>
 
     <example>
     用户问题: 有什么颜色?
-    原始答案: 
+    原始答案: 提供曜石黑、冰川银、星云蓝三种配色
     输出: {
-    "strategy": "CLARIFICATION",
-    "reason": "原始答案为空,需询问具体产品"
+    "strategy": "GUIDANCE",
+    "reason": "颜色类问题适合补充产品图"
+    }
+    </example>
+
+    <example>
+    用户问题: 外观设计怎么样?
+    原始答案: 采用玻璃机身,曲面屏设计,质感高端大气。
+    输出: {
+    "strategy": "GUIDANCE",
+    "reason": "外观类问题适合补充产品图"
+    }
+    </example>
+
+    <example>
+    用户问题: 电池续航怎么样?
+    原始答案: 本产品配备5000mAh电池容量,支持66W快充技术,正常使用情况下可以使用一天。
+    输出: {
+    "strategy": "ENHANCE",
+    "reason": "表达较生硬,缺乏客服亲和力,需优化"
+    }
+    </example>
+
+    <example>
+    用户问题: 支持5G吗?
+    原始答案: 支持5G网络,包括SA和NSA双模组网方式,支持N1/N3/N28A/N41/N77/N78/N79等频段。
+    输出: {
+    "strategy": "ENHANCE",
+    "reason": "专业术语过多,需要更客服化的表达"
+    }
+    </example>
+
+    <example>
+    用户问题: 价格多少?
+    原始答案: 7999元起
+    输出: {
+    "strategy": "ENHANCE",
+    "reason": "回答过于简略,需要更完整的表达"
     }
     </example>
     </examples>
