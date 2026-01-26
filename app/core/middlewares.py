@@ -83,7 +83,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         }
         request_info["headers"] = filtered_headers
 
-        logger.info(f"请求开始: {request.method} {request.url.path} | 客户端IP: {client_ip}")
+        logger.info(
+            f"请求开始: {request.method} {request.url.path} | 客户端IP: {client_ip}"
+        )
 
         # 执行请求
         try:
@@ -130,7 +132,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
         return response
 
-    def _process_request_body(self, body_bytes: bytes, request: Request) -> dict | str | None:
+    def _process_request_body(
+        self, body_bytes: bytes, request: Request
+    ) -> dict | str | None:
         """
         处理请求体，支持文本和二进制数据
 
@@ -167,7 +171,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                 "type": "binary",
                 "content_type": content_type or "unknown",
                 "size": len(body_bytes),
-                "size_human": f"{len(body_bytes) / 1024:.2f} KB" if len(body_bytes) > 1024 else f"{len(body_bytes)} B",
+                "size_human": f"{len(body_bytes) / 1024:.2f} KB"
+                if len(body_bytes) > 1024
+                else f"{len(body_bytes)} B",
             }
         else:
             # 文本数据：尝试解码并截断
@@ -184,7 +190,10 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
             # 限制长度，避免日志过大
             if len(body_str) > self.log_request_body_length:
-                return body_str[:self.log_request_body_length] + f"... (truncated, total: {len(body_str)} chars)"
+                return (
+                    body_str[: self.log_request_body_length]
+                    + f"... (truncated, total: {len(body_str)} chars)"
+                )
             return body_str
 
     @staticmethod
