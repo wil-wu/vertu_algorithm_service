@@ -1,6 +1,8 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 
+from .enum import Intent, ProductType
+
 
 class QAGenerationServiceSettings(BaseSettings):
     """问题生成服务配置"""
@@ -23,9 +25,9 @@ class QAGenerationServiceSettings(BaseSettings):
     filter_rules: list[dict] = Field(
         default=[
             {
-                "question_condition": "agent q(?!.*戒指)",
+                "question_condition": f"({"|".join(ProductType.get_product_types_values())})(?!.*戒指)",
                 "answer_condition": "",
-                "intent_condition": "产品&功能咨询|产品&品类咨询",
+                "intent_condition": f"{Intent.PRODUCT_FUNCTION.value}|{Intent.PRODUCT_CATEGORY.value}",
             },
         ],
         description="过滤规则",
