@@ -1,8 +1,8 @@
-import json
+import orjson
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, UploadFile, Query
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response
 
 from .service import QAGenerationService
 from .deps import get_qa_generation_service
@@ -38,9 +38,9 @@ async def _generate_qa(
 @router.post("/generate_from_body", response_model=None)
 async def generate_qa_from_body(
     body: QAGenerationBody,
-    is_stream: bool = Query(default=False, description="是否流式返回"),
+    return_file: bool = Query(default=False, description="是否返回文件"),
     qa_generation_service: QAGenerationService = Depends(get_qa_generation_service),
-) -> dict | StreamingResponse:
+) -> Response:
     """从Body生成QA"""
 
     records = body.data.get("RECORDS", [])
@@ -52,44 +52,54 @@ async def generate_qa_from_body(
         }
 
     qas = await _generate_qa(records, metadata, qa_generation_service)
+    content = orjson.dumps({
+        "code": 200,
+        "message": "success",
+        "data": {"qas": qas, "total": len(qas)},
+    })
 
-    if is_stream:
-        return StreamingResponse(
-            content=json.dumps(qas, ensure_ascii=False),
-            media_type="application/json",
+    if return_file:
+        filename = f"qa_{datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
+        return Response(
+            content=content, 
+            media_type="application/octet-stream",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            }
         )
     else:
-        return {
-            "code": 200,
-            "message": "success",
-            "data": {"qas": qas, "total": len(qas)},
-        }
+        return Response(content=content, media_type="application/json")
 
 
 @router.post("/generate_from_file", response_model=None)
 async def generate_qa_from_file(
     file: UploadFile,
-    is_stream: bool = Query(default=False, description="是否流式返回"),
+    return_file: bool = Query(default=False, description="是否返回文件"),
     qa_generation_service: QAGenerationService = Depends(get_qa_generation_service),
-) -> dict | StreamingResponse:
+) -> Response:
     """从文件生成QA"""
 
-    records = json.loads(await file.read()).get("RECORDS", [])
+    records = orjson.loads(await file.read()).get("RECORDS", [])
     metadata = {
         "source": file.filename,
         "datetime": datetime.now().isoformat(),
     }
 
     qas = await _generate_qa(records, metadata, qa_generation_service)
+    content = orjson.dumps({
+        "code": 200,
+        "message": "success",
+        "data": {"qas": qas, "total": len(qas)},
+    })
 
-    if is_stream:
-        return StreamingResponse(
-            content=json.dumps(qas, ensure_ascii=False),
-            media_type="application/json",
+    if return_file:
+        filename = f"qa_{datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
+        return Response(
+            content=content, 
+            media_type="application/octet-stream",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            }
         )
     else:
-        return {
-            "code": 200,
-            "message": "success",
-            "data": {"qas": qas, "total": len(qas)},
-        }
+        return Response(content=content, media_type="application/json")
