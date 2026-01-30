@@ -32,7 +32,7 @@ class QAGenerationService:
             LLMFilter(openai_client, llm_model, filter_temperature),
         ]
         self.post_process_pipeline = [
-            # SemanticProcessor(sentence_transformer, semantic_threshold),
+            SemanticProcessor(sentence_transformer, semantic_threshold),
         ]
 
     async def _generate(self, context: str) -> list[dict]:
