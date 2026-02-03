@@ -6,6 +6,9 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 
+from app.core.managers import async_job_manager
+from app.core.enum import JobType
+from .jobs import enhance_answer
 from .models import AnswerEnhancementBody
 from .service import AnswerEnhancementService
 from .deps import get_answer_enhancement_service
@@ -17,7 +20,7 @@ router = APIRouter(
 )
 
 
-@router.post("/enhance")
+@router.post("/sync/enhance")
 async def answer_enhancement(
     body: AnswerEnhancementBody | list[AnswerEnhancementBody],
     return_file: bool = Query(default=False, description="是否返回文件"),
@@ -60,3 +63,21 @@ async def answer_enhancement(
         )
     else:
         return Response(content=content, media_type="application/json")
+
+
+@router.post("/async/enhance")
+async def answer_enhancement_async(
+    body: AnswerEnhancementBody | list[AnswerEnhancementBody],
+    answer_enhancement_service: AnswerEnhancementService = Depends(
+        get_answer_enhancement_service
+    ),
+) -> dict:
+    """答案增强异步"""
+    job_id = await async_job_manager.create_async_job(
+        JobType.ANSWER_ENHANCEMENT, enhance_answer, body, answer_enhancement_service
+    )
+    return {
+        "code": 200,
+        "message": "success",
+        "data": {"job_id": job_id},
+    }
