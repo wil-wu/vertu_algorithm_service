@@ -4,10 +4,13 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, UploadFile, Query
 from fastapi.responses import Response
 
+from app.core.managers import async_job_manager
+from app.core.enum import JobType
+from .jobs import generate_qa
 from .service import QAGenerationService
 from .deps import get_qa_generation_service
 from .models import QAGenerationBody
-from .config import qa_generation_service_settings
+from .utils import build_contexts
 
 router = APIRouter(
     prefix="/api/v1/qa",
@@ -19,20 +22,7 @@ async def _generate_qa(
     records: list[dict], metadata: dict, qa_generation_service: QAGenerationService
 ) -> list[dict]:
     """生成QA"""
-    contexts = []
-    for record in records:
-        contents = record.get("消息内容", [])
-        if not isinstance(contents, list):
-            continue
-        context = "\n".join(
-            [
-                f"{idx + 1}. {content.get('sender', '').replace('\n', '')}: {content.get('content', '').replace('\n', '')}"
-                for idx, content in enumerate(contents)
-            ]
-        )
-        if len(context) > qa_generation_service_settings.max_context_length:
-            context = context[: qa_generation_service_settings.max_context_length]
-        contexts.append(context)
+    contexts = build_contexts(records)
 
     qas_result = await qa_generation_service.generate_qa(contexts)
     for qa_pair in qas_result["qas"]:
@@ -40,7 +30,7 @@ async def _generate_qa(
     return qas_result
 
 
-@router.post("/generate_from_body", response_model=None)
+@router.post("/sync/generate_from_body", response_model=None)
 async def generate_qa_from_body(
     body: QAGenerationBody,
     return_file: bool = Query(default=False, description="是否返回文件"),
@@ -76,7 +66,7 @@ async def generate_qa_from_body(
         return Response(content=content, media_type="application/json")
 
 
-@router.post("/generate_from_file", response_model=None)
+@router.post("/sync/generate_from_file", response_model=None)
 async def generate_qa_from_file(
     file: UploadFile,
     return_file: bool = Query(default=False, description="是否返回文件"),
@@ -108,3 +98,51 @@ async def generate_qa_from_file(
         )
     else:
         return Response(content=content, media_type="application/json")
+
+
+@router.post("/async/generate_from_body")
+async def generate_qa_from_body_async(
+    body: QAGenerationBody,
+    qa_generation_service: QAGenerationService = Depends(get_qa_generation_service),
+) -> dict:
+    """从Body异步生成QA"""
+    records = body.data.get("RECORDS", [])
+    metadata = body.metadata
+    if not metadata:
+        metadata = {
+            "source": "http request",
+            "datetime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        }
+
+    job_id = await async_job_manager.create_async_job(
+        JobType.QA_GENERATION, generate_qa, records, metadata, qa_generation_service
+    )
+
+    return {
+        "code": 200,
+        "message": "success",
+        "data": {"job_id": job_id},
+    }
+
+
+@router.post("/async/generate_from_file")
+async def generate_qa_from_file_async(
+    file: UploadFile,
+    qa_generation_service: QAGenerationService = Depends(get_qa_generation_service),
+) -> dict:
+    """从文件异步生成QA"""
+    records = orjson.loads(await file.read()).get("RECORDS", [])
+    metadata = {
+        "source": file.filename,
+        "datetime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+
+    job_id = await async_job_manager.create_async_job(
+        JobType.QA_GENERATION, generate_qa, records, metadata, qa_generation_service
+    )
+
+    return {
+        "code": 200,
+        "message": "success",
+        "data": {"job_id": job_id},
+    }
