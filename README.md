@@ -21,13 +21,21 @@
 ```
 vertu_algorithm_service/
 ├── main.py                       # 应用启动入口
+├── pyproject.toml                # 项目配置
+├── uv.lock                       # 依赖锁定
+├── Dockerfile                    # Docker 构建
+├── docker-compose.yml            # Docker Compose
+├── docker-build.sh               # Docker 构建脚本
 ├── .huggingface/                 # Hugging Face 模型文件目录
 ├── app/                          # 主应用
 │   ├── app.py                    # 应用入口
 │   ├── config.py                 # 全局配置
 │   ├── scanner.py                # 路由自动扫描
 │   ├── core/                     # 核心模块
+│   │   ├── database.py           # 数据库与模型
+│   │   ├── enum.py               # 枚举定义
 │   │   ├── exceptions.py         # 自定义异常
+│   │   ├── managers.py           # 异步任务管理器
 │   │   └── middlewares.py        # 中间件
 │   └── services/                 # 子服务
 │       ├── answer_enhancement/   # 答案增强服务
@@ -37,6 +45,7 @@ vertu_algorithm_service/
 │       │   ├── enhancers.py      # 定向策略增强器
 │       │   ├── enum.py           # 策略枚举
 │       │   ├── extractors.py     # 内容抽取器
+│       │   ├── jobs.py           # 异步任务
 │       │   ├── models.py         # Pydantic 模型
 │       │   ├── router.py         # API 路由
 │       │   └── service.py        # 业务逻辑
@@ -44,14 +53,17 @@ vertu_algorithm_service/
 │           ├── config.py         # 服务配置
 │           ├── deps.py           # 依赖注入
 │           ├── enum.py           # 枚举定义
-│           ├── filters.py        # QA过滤器
-│           ├── generators.py     # QA生成器
+│           ├── filters.py        # QA 过滤器
+│           ├── generators.py     # QA 生成器
+│           ├── jobs.py           # 异步任务
 │           ├── models.py         # Pydantic 模型
-│           ├── processors.py     # QA后处理器
+│           ├── processors.py     # QA 后处理器
 │           ├── router.py         # API 路由
-│           └── service.py        # 业务逻辑
+│           ├── service.py        # 业务逻辑
+│           └── utils.py          # 工具函数
 └── tests/                        # 测试
-    └── conftest.py               # 测试配置
+    ├── conftest.py               # 测试配置
+    └── test_api.py               # API 测试
 ```
 
 ## 🛠️ 快速开始
