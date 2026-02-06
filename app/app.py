@@ -129,7 +129,7 @@ def create_app() -> FastAPI:
         routes = scanner.get_registered_routes()
         return {"total": len(routes), "routes": routes}
 
-    @app.get("/jobs/{job_id}")
+    @app.get("/jobs/{job_id}", tags=["Jobs"])
     async def get_async_job(job_id: str) -> Response:
         job = await async_job_manager.get_async_job(job_id)
         if job is None:
@@ -146,7 +146,7 @@ def create_app() -> FastAPI:
             media_type="application/json",
         )
 
-    @app.get("/jobs")
+    @app.get("/jobs", tags=["Jobs"])
     async def get_async_jobs(
         page: int = 1,
         size: int = 10,
@@ -160,7 +160,7 @@ def create_app() -> FastAPI:
             media_type="application/json",
         )
 
-    @app.get("/jobs/{job_id}/cancel")
+    @app.get("/jobs/{job_id}/cancel", tags=["Jobs"])
     async def cancel_async_job(job_id: str) -> Response:
         cancelled = await async_job_manager.cancel_async_job(job_id)
         if not cancelled:
