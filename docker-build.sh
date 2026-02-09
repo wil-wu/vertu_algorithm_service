@@ -3,7 +3,7 @@ set -e
 
 # Docker 镜像构建变量
 REPO="${REPO:-docker.vertu.com}"
-APP_NAME="${APP_NAME:-faq-builder}"
+APP_NAME="${APP_NAME:-vertu-faq-builder}"
 VERSION="${VERSION:-1.0.0}"
 TIMESTAMP="${TIMESTAMP:-$(date +%Y%m%d%H%M%S)}"
 
