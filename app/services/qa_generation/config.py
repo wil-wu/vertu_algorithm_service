@@ -29,6 +29,10 @@ class QAGenerationServiceSettings(BaseSettings):
                 "answer_condition": "",
                 "intent_condition": f"{Intent.PRODUCT_FUNCTION.value}|{Intent.PRODUCT_CATEGORY.value}",
             },
+            {
+                "question_condition": r"^(?!.*(https?://|www\.))",
+                "answer_condition": r"^(?!.*(https?://|www\.))",
+            }
         ],
         description="过滤规则",
     )
